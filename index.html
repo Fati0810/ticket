@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Commande Pressing - Envoi ticket WhatsApp</title>
+  </head>
+  <body>
+    <h1>Commande Pressing - Envoi ticket WhatsApp</h1>
+
+    <label for="civilite">Civilité</label>
+    <select id="civilite">
+      <option value="">-- Choisir --</option>
+      <option value="M.">Monsieur</option>
+      <option value="Mme">Madame</option>
+    </select>
+
+    <div class="flex-row">
+      <div class="flex-col">
+        <label for="prenom">Prénom</label>
+        <input type="text" id="prenom" placeholder="Ex : Fatimata" />
+      </div>
+      <div class="flex-col">
+        <label for="nom">Nom</label>
+        <input type="text" id="nom" placeholder="Ex : Diallo" />
+      </div>
+    </div>
+
+    <label for="numero">Numéro WhatsApp du client (ex: 221123456789)</label>
+    <input
+      type="tel"
+      id="numero"
+      placeholder="Entrez le numéro sans + ni espaces"
+    />
+
+    <label>Services choisis</label>
+    <table id="servicesTable">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Quantité</th>
+          <th>Prix unitaire (€)</th>
+          <th>Sous-total (€)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Nettoyage costume</td>
+          <td>
+            <input
+              type="number"
+              min="0"
+              value="0"
+              class="qty"
+              data-price="15"
+            />
+          </td>
+          <td>15,00</td>
+          <td class="subtotal">0,00</td>
+        </tr>
+        <tr>
+          <td>Repassage chemise</td>
+          <td>
+            <input type="number" min="0" value="0" class="qty" data-price="5" />
+          </td>
+          <td>5,00</td>
+          <td class="subtotal">0,00</td>
+        </tr>
+        <tr>
+          <td>Lavage pantalon</td>
+          <td>
+            <input type="number" min="0" value="0" class="qty" data-price="7" />
+          </td>
+          <td>7,00</td>
+          <td class="subtotal">0,00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <label>Réduction</label>
+    <div id="discountButtons">
+      <button class="btn-discount" data-discount="0">Aucune</button>
+      <button class="btn-discount" data-discount="10">10%</button>
+      <button class="btn-discount" data-discount="15">15%</button>
+      <button class="btn-discount" data-discount="50">50%</button>
+    </div>
+
+    <div class="flex-row" style="margin-top: 1em">
+      <div class="flex-col">
+        <label>Total avant réduction (€)</label>
+        <input type="text" id="total" value="0,00" readonly />
+      </div>
+      <div class="flex-col">
+        <label>Montant réduction (€)</label>
+        <input type="text" id="montantReduction" value="0,00" readonly />
+      </div>
+      <div class="flex-col">
+        <label>Total après réduction (€)</label>
+        <input type="text" id="totalFinal" value="0,00" readonly />
+      </div>
+    </div>
+
+    <button class="btn" id="btnGenerer">Générer lien WhatsApp</button>
+    <button id="download-pdf">Télécharger le devis en PDF</button>
+
+    <div id="result"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <script src="scrypt.js"></script>
+  </body>
+</html>
