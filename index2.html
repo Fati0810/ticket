@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Commande Pressing - Envoi ticket WhatsApp</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 2em auto;
+      padding: 0 1em;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    label {
+      display: block;
+      margin: 1em 0 0.3em;
+      font-weight: bold;
+    }
+    input[type="text"], input[type="tel"], select, input[type="number"] {
+      width: 100%;
+      padding: 0.5em;
+      font-size: 1em;
+      box-sizing: border-box;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5em;
+      text-align: left;
+    }
+    th {
+      background: #f4f4f4;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 1em;
+      padding: 0.7em 1.5em;
+      font-weight: bold;
+      font-size: 1em;
+      color: white;
+      background-color: #25d366;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+    }
+    .btn:hover {
+      background-color: #128c4a;
+    }
+    #result {
+      margin-top: 1em;
+      word-break: break-word;
+    }
+    .flex-row {
+      display: flex;
+      gap: 1em;
+      flex-wrap: wrap;
+    }
+    .flex-col {
+      flex: 1;
+      min-width: 140px;
+    }
+    .btn-discount {
+      background-color: #007bff;
+      margin-right: 0.5em;
+      padding: 0.3em 0.8em;
+      font-weight: normal;
+      font-size: 0.9em;
+      border-radius: 3px;
+      cursor: pointer;
+      border: none;
+      color: white;
+    }
+    .btn-discount.active {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Commande Pressing - Envoi ticket WhatsApp</h1>
+
+  <label for="civilite">Civilité</label>
+  <select id="civilite">
+    <option value="">-- Choisir --</option>
+    <option value="M.">Monsieur</option>
+    <option value="Mme">Madame</option>
+  </select>
+
+  <div class="flex-row">
+    <div class="flex-col">
+      <label for="prenom">Prénom</label>
+      <input type="text" id="prenom" placeholder="Ex : Fatimata" />
+    </div>
+    <div class="flex-col">
+      <label for="nom">Nom</label>
+      <input type="text" id="nom" placeholder="Ex : Diallo" />
+    </div>
+  </div>
+
+  <label for="numero">Numéro WhatsApp du client (ex: 221123456789)</label>
+  <input type="tel" id="numero" placeholder="Entrez le numéro sans + ni espaces" />
+
+  <label>Services choisis</label>
+  <table id="servicesTable">
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Quantité</th>
+        <th>Prix unitaire (€)</th>
+        <th>Sous-total (€)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Nettoyage costume</td>
+        <td><input type="number" min="0" value="0" class="qty" data-price="15" /></td>
+        <td>15,00</td>
+        <td class="subtotal">0,00</td>
+      </tr>
+      <tr>
+        <td>Repassage chemise</td>
+        <td><input type="number" min="0" value="0" class="qty" data-price="5" /></td>
+        <td>5,00</td>
+        <td class="subtotal">0,00</td>
+      </tr>
+      <tr>
+        <td>Lavage pantalon</td>
+        <td><input type="number" min="0" value="0" class="qty" data-price="7" /></td>
+        <td>7,00</td>
+        <td class="subtotal">0,00</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <label>Réduction</label>
+  <div id="discountButtons">
+    <button class="btn-discount" data-discount="0">Aucune</button>
+    <button class="btn-discount" data-discount="10">10%</button>
+    <button class="btn-discount" data-discount="15">15%</button>
+    <button class="btn-discount" data-discount="50">50%</button>
+  </div>
+
+  <div class="flex-row" style="margin-top:1em;">
+    <div class="flex-col">
+      <label>Total avant réduction (€)</label>
+      <input type="text" id="total" value="0,00" readonly />
+    </div>
+    <div class="flex-col">
+      <label>Montant réduction (€)</label>
+      <input type="text" id="montantReduction" value="0,00" readonly />
+    </div>
+    <div class="flex-col">
+      <label>Total après réduction (€)</label>
+      <input type="text" id="totalFinal" value="0,00" readonly />
+    </div>
+  </div>
+
+  <button class="btn" id="btnGenerer">Générer lien WhatsApp</button>
+
+  <div id="result"></div>
+
+  <script>
+    const qtyInputs = document.querySelectorAll('.qty');
+    const totalInput = document.getElementById('total');
+    const montantReductionInput = document.getElementById('montantReduction');
+    const totalFinalInput = document.getElementById('totalFinal');
+    const resultDiv = document.getElementById('result');
+    const discountButtons = document.querySelectorAll('.btn-discount');
+
+    let discountPercent = 0;
+
+    function calculerTotal() {
+      let total = 0;
+      qtyInputs.forEach(input => {
+        const price = parseFloat(input.dataset.price);
+        const qty = parseInt(input.value) || 0;
+        const subtotal = price * qty;
+        input.closest('tr').querySelector('.subtotal').textContent = subtotal.toFixed(2).replace('.', ',');
+        total += subtotal;
+      });
+      totalInput.value = total.toFixed(2).replace('.', ',');
+      return total;
+    }
+
+    function appliquerReduction(total, percent) {
+      return total * (percent / 100);
+    }
+
+    function mettreAJourAffichage() {
+      const total = calculerTotal();
+      const reduction = appliquerReduction(total, discountPercent);
+      const totalFinal = total - reduction;
+
+      montantReductionInput.value = reduction.toFixed(2).replace('.', ',');
+      totalFinalInput.value = totalFinal.toFixed(2).replace('.', ',');
+    }
+
+    qtyInputs.forEach(input => {
+      input.addEventListener('input', () => {
+        mettreAJourAffichage();
+        resultDiv.innerHTML = '';
+      });
+    });
+
+    discountButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        discountPercent = parseInt(btn.dataset.discount);
+        discountButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        mettreAJourAffichage();
+        resultDiv.innerHTML = '';
+      });
+    });
+
+    discountButtons[0].classList.add('active');
+    mettreAJourAffichage();
+
+    function genererTicket(civilite, prenom, nom, services, totalAvant, reduction, totalApres) {
+      const date = new Date().toLocaleDateString('fr-FR');
+      const client = civilite + ' ' + prenom + ' ' + nom;
+      let ticket = `🧾 *Ticket - Pressing Sacré Coeur*\n📅 Date : ${date}\n👤 Client : ${client}\n\n🧺 *Services* :\n`;
+
+      services.forEach(s => {
+        if (s.qty > 0) {
+          ticket += `- ${s.name} x${s.qty} : ${s.subtotal.toFixed(2).replace('.', ',')} €\n`;
+        }
+      });
+      ticket += `\n💰 *Total avant réduction* : ${totalAvant.toFixed(2).replace('.', ',')} €`;
+      ticket += `\n🔻 *Réduction* : -${reduction.toFixed(2).replace('.', ',')} €`;
+      ticket += `\n✅ *Total à payer* : ${totalApres.toFixed(2).replace('.', ',')} €`;
+      ticket += `\n\n🙏 Merci pour votre confiance !`;
+      return ticket;
+    }
+
+    function genererLienWhatsApp(numeroClient, ticketTexte) {
+      const messageEncode = encodeURIComponent(ticketTexte);
+      return `https://wa.me/${numeroClient}?text=${messageEncode}`;
+    }
+
+    document.getElementById('btnGenerer').addEventListener('click', () => {
+      const civilite = document.getElementById('civilite').value.trim();
+      const prenom = document.getElementById('prenom').value.trim();
+      const nom = document.getElementById('nom').value.trim();
+      const numero = document.getElementById('numero').value.trim();
+
+      if (!civilite || !prenom || !nom || !numero.match(/^\d+$/)) {
+        alert('Merci de remplir correctement tous les champs.');
+        return;
+      }
+
+      const services = [];
+      let totalAvant = 0;
+      qtyInputs.forEach(input => {
+        const qty = parseInt(input.value) || 0;
+        const price = parseFloat(input.dataset.price);
+        const name = input.closest('tr').querySelector('td').textContent;
+        const subtotal = qty * price;
+        if (qty > 0) {
+          services.push({name, qty, subtotal});
+          totalAvant += subtotal;
+        }
+      });
+
+      if (services.length === 0) {
+        alert('Veuillez sélectionner au moins un service.');
+        return;
+      }
+
+      const reduction = appliquerReduction(totalAvant, discountPercent);
+      const totalApres = totalAvant - reduction;
+      const ticket = genererTicket(civilite, prenom, nom, services, totalAvant, reduction, totalApres);
+      const lien = genererLienWhatsApp(numero, ticket);
+
+      resultDiv.innerHTML = `<p><strong>Message généré :</strong></p><pre>${ticket}</pre><p><a class="btn" href="${lien}" target="_blank">📤 Envoyer sur WhatsApp</a></p>`;
+    });
+  </script>
+</body>
+</html>
