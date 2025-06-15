@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ticket Pressing Sacré Coeur</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2em; background: #f5f5f5; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 2em; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    th, td { padding: 0.5em; border: 1px solid #ccc; text-align: left; }
+    th { background-color: #f0f0f0; }
+
+    input[type="number"] { width: 60px; }
+
+    .btn {
+      background-color: #28a745;
+      color: white;
+      padding: 0.5em 1em;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      margin: 1em 1em 0 0;
+      border-radius: 5px;
+    }
+
+    .btn-discount.active { background-color: #007bff; }
+    .btn-discount { margin-right: 5px; }
+
+    #ticket {
+      padding: 1.5em;
+      margin-top: 2em;
+      border: 1px dashed #aaa;
+      background: white;
+    }
+
+    #ticket h2 {
+      text-align: center;
+      margin-top: 0;
+    }
+
+    .infos-client {
+      margin-bottom: 1em;
+    }
+
+    .totaux {
+      margin-top: 1em;
+      font-weight: bold;
+    }
+
+    @media print {
+      body { background: white; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Pressing Sacré Coeur - Génération de Ticket</h1>
+
+    <form id="client-form" class="no-print">
+      <label>Civilité :</label>
+      <select id="civilite">
+        <option value="M.">M.</option>
+        <option value="Mme">Mme</option>
+      </select>
+      <input type="text" id="prenom" placeholder="Prénom" required />
+      <input type="text" id="nom" placeholder="Nom" required />
+      <input type="text" id="numero" placeholder="Numéro WhatsApp" required />
+    </form>
+
+    <h2 class="no-print">Services</h2>
+    <table class="no-print">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Prix (€)</th>
+          <th>Quantité</th>
+          <th>Sous-total (€)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Repassage</td>
+          <td>2.00</td>
+          <td><input type="number" class="qty" data-price="2.00" min="0" /></td>
+          <td class="subtotal">0,00</td>
+        </tr>
+        <tr>
+          <td>Lavage</td>
+          <td>5.00</td>
+          <td><input type="number" class="qty" data-price="5.00" min="0" /></td>
+          <td class="subtotal">0,00</td>
+        </tr>
+        <tr>
+          <td>Blanchiment</td>
+          <td>7.50</td>
+          <td><input type="number" class="qty" data-price="7.50" min="0" /></td>
+          <td class="subtotal">0,00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="no-print" style="margin-top:1em;">
+      <label>Réduction :</label>
+      <button type="button" class="btn btn-discount active" data-discount="0">0%</button>
+      <button type="button" class="btn btn-discount" data-discount="10">10%</button>
+      <button type="button" class="btn btn-discount" data-discount="20">20%</button>
+    </div>
+
+    <div class="no-print" style="margin-top:1em;">
+      <label>Total (€) :</label>
+      <input type="text" id="total" readonly />
+      <label>Montant réduction (€) :</label>
+      <input type="text" id="montantReduction" readonly />
+      <label>Total final (€) :</label>
+      <input type="text" id="totalFinal" readonly />
+    </div>
+
+    <div class="no-print">
+      <button class="btn" id="btnGenerer" type="button">Générer WhatsApp</button>
+      <button class="btn" id="download-pdf" type="button">Télécharger PDF</button>
+    </div>
+
+    <!-- Zone ticket à imprimer/télécharger -->
+    <div id="ticket">
+      <h2>TICKET - PRESSING SACRÉ COEUR</h2>
+      <div class="infos-client" id="infos-client"></div>
+      <div id="details-prestations"></div>
+      <div class="totaux" id="details-totaux"></div>
+    </div>
+  </div>
+
+  <script>
+    const inputs = document.querySelectorAll('.qty');
+    const subtotals = document.querySelectorAll('.subtotal');
+    const totalEl = document.getElementById('total');
+    const montantReductionEl = document.getElementById('montantReduction');
+    const totalFinalEl = document.getElementById('totalFinal');
+    const discountButtons = document.querySelectorAll('.btn-discount');
+    let selectedDiscount = 0;
+
+    function updateCalcul() {
+      let total = 0;
+      inputs.forEach((input, index) => {
+        const prix = parseFloat(input.dataset.price);
+        const qty = parseInt(input.value) || 0;
+        const subtotal = prix * qty;
+        subtotals[index].textContent = subtotal.toFixed(2).replace('.', ',');
+        total += subtotal;
+      });
+
+      const montantReduction = total * (selectedDiscount / 100);
+      const totalFinal = total - montantReduction;
+
+      totalEl.value = total.toFixed(2).replace('.', ',');
+      montantReductionEl.value = montantReduction.toFixed(2).replace('.', ',');
+      totalFinalEl.value = totalFinal.toFixed(2).replace('.', ',');
+
+      // Mettre à jour le ticket
+      generateTicketHTML();
+    }
+
+    function generateTicketHTML() {
+      const civilite = document.getElementById('civilite').value;
+      const prenom = document.getElementById('prenom').value.trim();
+      const nom = document.getElementById('nom').value.trim();
+
+      const infos = `<p><strong>Client :</strong> ${civilite} ${prenom} ${nom}</p><p><strong>Date :</strong> ${new Date().toLocaleString()}</p>`;
+      document.getElementById('infos-client').innerHTML = infos;
+
+      let prestations = "<ul>";
+      inputs.forEach((input, index) => {
+        const service = input.closest('tr').querySelector('td').textContent;
+        const qty = parseInt(input.value);
+        const sousTotal = subtotals[index].textContent;
+        if (qty > 0) {
+          prestations += `<li>${service} x${qty} : ${sousTotal}€</li>`;
+        }
+      });
+      prestations += "</ul>";
+      document.getElementById('details-prestations').innerHTML = prestations;
+
+      let totaux = `<p>Total : ${totalEl.value}€</p>`;
+        if (selectedDiscount > 0) {
+        totaux += `<p>Réduction (${selectedDiscount}%) : ${montantReductionEl.value}€</p>`;
+        }
+        totaux += `<p>Total final : ${totalFinalEl.value}€</p>`;
+      document.getElementById('details-totaux').innerHTML = totaux;
+    }
+
+    inputs.forEach(input => input.addEventListener('input', updateCalcul));
+    discountButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        discountButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedDiscount = parseInt(btn.dataset.discount);
+        updateCalcul();
+      });
+    });
+
+    document.getElementById('btnGenerer').addEventListener('click', () => {
+      const numero = document.getElementById('numero').value.trim();
+      const text = document.getElementById('ticket').innerText;
+      if (!numero) return alert('Numéro WhatsApp manquant');
+      const url = `https://wa.me/${numero}?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    });
+
+    document.getElementById('download-pdf').addEventListener('click', () => {
+      const element = document.getElementById('ticket');
+      const opt = {
+        margin: 0.5,
+        filename: 'ticket_pressing.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'cm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
+    });
+
+    updateCalcul(); // Initialiser au chargement
+  </script>
+</body>
+</html>
