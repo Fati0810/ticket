@@ -224,10 +224,20 @@
     discountButtons[0].classList.add('active');
     mettreAJourAffichage();
 
+    function genererNumeroTransaction() {
+    const datePart = new Date().toISOString().slice(0,10).replace(/-/g, ''); // ex: 20250619
+    const randomPart = Math.floor(1000 + Math.random() * 9000); // ex: 4 chiffres aléatoires
+    return `TX${datePart}${randomPart}`; // ex: TX202506198374
+    }
+
+
     function genererTicket(civilite, prenom, nom, services, totalAvant, reduction, totalApres) {
       const date = new Date().toLocaleDateString('fr-FR');
       const client = civilite + ' ' + prenom + ' ' + nom;
       let ticket = `🧾 *Ticket - Pressing Sacré Coeur*\n📅 Date : ${date}\n👤 Client : ${client}\n\n🧺 *Services* :\n`;
+      ticket += `🔖 Transaction n° : ${numeroTransaction}\n`;
+      ticket += `📅 Date : ${date}\n👤 Client : ${client}\n\n🧺 *Services* :\n`;
+
 
       services.forEach(s => {
         if (s.qty > 0) {
@@ -251,6 +261,7 @@
       const prenom = document.getElementById('prenom').value.trim();
       const nom = document.getElementById('nom').value.trim();
       const numero = document.getElementById('numero').value.trim();
+      const numeroTransaction = genererNumeroTransaction();
 
       if (!civilite || !prenom || !nom || !numero.match(/^\d+$/)) {
         alert('Merci de remplir correctement tous les champs.');
@@ -277,7 +288,7 @@
 
       const reduction = appliquerReduction(totalAvant, discountPercent);
       const totalApres = totalAvant - reduction;
-      const ticket = genererTicket(civilite, prenom, nom, services, totalAvant, reduction, totalApres);
+      const ticket = genererTicket(civilite, prenom, nom, services, totalAvant, reduction, totalApres, numeroTransaction);
       const lien = genererLienWhatsApp(numero, ticket);
 
       resultDiv.innerHTML = `<p><strong>Message généré :</strong></p><pre>${ticket}</pre><p><a class="btn" href="${lien}" target="_blank">📤 Envoyer sur WhatsApp</a></p>`;

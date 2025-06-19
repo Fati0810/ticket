@@ -134,94 +134,111 @@
   </div>
 
   <script>
-    const inputs = document.querySelectorAll('.qty');
-    const subtotals = document.querySelectorAll('.subtotal');
-    const totalEl = document.getElementById('total');
-    const montantReductionEl = document.getElementById('montantReduction');
-    const totalFinalEl = document.getElementById('totalFinal');
-    const discountButtons = document.querySelectorAll('.btn-discount');
-    let selectedDiscount = 0;
+  const inputs = document.querySelectorAll('.qty');
+  const subtotals = document.querySelectorAll('.subtotal');
+  const totalEl = document.getElementById('total');
+  const montantReductionEl = document.getElementById('montantReduction');
+  const totalFinalEl = document.getElementById('totalFinal');
+  const discountButtons = document.querySelectorAll('.btn-discount');
+  let selectedDiscount = 0;
 
-    function updateCalcul() {
-      let total = 0;
-      inputs.forEach((input, index) => {
-        const prix = parseFloat(input.dataset.price);
-        const qty = parseInt(input.value) || 0;
-        const subtotal = prix * qty;
-        subtotals[index].textContent = subtotal.toFixed(2).replace('.', ',');
-        total += subtotal;
-      });
+  // Variable globale pour garder le numéro de transaction en mémoire
+  let currentNumeroTransaction = '';
 
-      const montantReduction = total * (selectedDiscount / 100);
-      const totalFinal = total - montantReduction;
+  function updateCalcul() {
+    let total = 0;
+    inputs.forEach((input, index) => {
+      const prix = parseFloat(input.dataset.price);
+      const qty = parseInt(input.value) || 0;
+      const subtotal = prix * qty;
+      subtotals[index].textContent = subtotal.toFixed(2).replace('.', ',');
+      total += subtotal;
+    });
 
-      totalEl.value = total.toFixed(2).replace('.', ',');
-      montantReductionEl.value = montantReduction.toFixed(2).replace('.', ',');
-      totalFinalEl.value = totalFinal.toFixed(2).replace('.', ',');
+    const montantReduction = total * (selectedDiscount / 100);
+    const totalFinal = total - montantReduction;
 
-      // Mettre à jour le ticket
-      generateTicketHTML();
+    totalEl.value = total.toFixed(2).replace('.', ',');
+    montantReductionEl.value = montantReduction.toFixed(2).replace('.', ',');
+    totalFinalEl.value = totalFinal.toFixed(2).replace('.', ',');
+
+    // Mettre à jour le ticket (génère aussi un numéro de transaction)
+    generateTicketHTML();
+  }
+
+  function genererNumeroTransaction() {
+    const datePart = new Date().toISOString().slice(0,10).replace(/-/g, ''); // ex: 20250619
+    const randomPart = Math.floor(1000 + Math.random() * 9000); // ex: 4 chiffres aléatoires
+    return `TX${datePart}${randomPart}`; // ex: TX202506198374
+  }
+
+  function generateTicketHTML() {
+    const civilite = document.getElementById('civilite').value;
+    const prenom = document.getElementById('prenom').value.trim();
+    const nom = document.getElementById('nom').value.trim();
+
+    // Générer un nouveau numéro de transaction à chaque update (ou tu peux choisir de générer qu’au clic)
+    currentNumeroTransaction = genererNumeroTransaction();
+
+    const infos = `<p><strong>Transaction n° :</strong> ${currentNumeroTransaction}</p>
+                   <p><strong>Client :</strong> ${civilite} ${prenom} ${nom}</p>
+                   <p><strong>Date :</strong> ${new Date().toLocaleString()}</p>`;
+    document.getElementById('infos-client').innerHTML = infos;
+
+    let prestations = "<ul>";
+    inputs.forEach((input, index) => {
+      const service = input.closest('tr').querySelector('td').textContent;
+      const qty = parseInt(input.value);
+      const sousTotal = subtotals[index].textContent;
+      if (qty > 0) {
+        prestations += `<li>${service} x${qty} : ${sousTotal}€</li>`;
+      }
+    });
+    prestations += "</ul>";
+    document.getElementById('details-prestations').innerHTML = prestations;
+
+    let totaux = `<p>Total : ${totalEl.value}€</p>`;
+    if (selectedDiscount > 0) {
+      totaux += `<p>Réduction (${selectedDiscount}%) : ${montantReductionEl.value}€</p>`;
     }
+    totaux += `<p>Total final : ${totalFinalEl.value}€</p>`;
+    document.getElementById('details-totaux').innerHTML = totaux;
+  }
 
-    function generateTicketHTML() {
-      const civilite = document.getElementById('civilite').value;
-      const prenom = document.getElementById('prenom').value.trim();
-      const nom = document.getElementById('nom').value.trim();
-
-      const infos = `<p><strong>Client :</strong> ${civilite} ${prenom} ${nom}</p><p><strong>Date :</strong> ${new Date().toLocaleString()}</p>`;
-      document.getElementById('infos-client').innerHTML = infos;
-
-      let prestations = "<ul>";
-      inputs.forEach((input, index) => {
-        const service = input.closest('tr').querySelector('td').textContent;
-        const qty = parseInt(input.value);
-        const sousTotal = subtotals[index].textContent;
-        if (qty > 0) {
-          prestations += `<li>${service} x${qty} : ${sousTotal}€</li>`;
-        }
-      });
-      prestations += "</ul>";
-      document.getElementById('details-prestations').innerHTML = prestations;
-
-      let totaux = `<p>Total : ${totalEl.value}€</p>`;
-        if (selectedDiscount > 0) {
-        totaux += `<p>Réduction (${selectedDiscount}%) : ${montantReductionEl.value}€</p>`;
-        }
-        totaux += `<p>Total final : ${totalFinalEl.value}€</p>`;
-      document.getElementById('details-totaux').innerHTML = totaux;
-    }
-
-    inputs.forEach(input => input.addEventListener('input', updateCalcul));
-    discountButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        discountButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedDiscount = parseInt(btn.dataset.discount);
-        updateCalcul();
-      });
+  inputs.forEach(input => input.addEventListener('input', updateCalcul));
+  discountButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      discountButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedDiscount = parseInt(btn.dataset.discount);
+      updateCalcul();
     });
+  });
 
-    document.getElementById('btnGenerer').addEventListener('click', () => {
-      const numero = document.getElementById('numero').value.trim();
-      const text = document.getElementById('ticket').innerText;
-      if (!numero) return alert('Numéro WhatsApp manquant');
-      const url = `https://wa.me/${numero}?text=${encodeURIComponent(text)}`;
-      window.open(url, '_blank');
-    });
+  document.getElementById('btnGenerer').addEventListener('click', () => {
+    const numero = document.getElementById('numero').value.trim();
+    if (!numero) return alert('Numéro WhatsApp manquant');
 
-    document.getElementById('download-pdf').addEventListener('click', () => {
-      const element = document.getElementById('ticket');
-      const opt = {
-        margin: 0.5,
-        filename: 'ticket_pressing.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'cm', format: 'a4', orientation: 'portrait' }
-      };
-      html2pdf().set(opt).from(element).save();
-    });
+    // Récupérer le contenu actuel du ticket, inclut désormais le numéro transaction
+    const text = document.getElementById('ticket').innerText;
+    const url = `https://wa.me/${numero}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  });
 
-    updateCalcul(); // Initialiser au chargement
-  </script>
+  document.getElementById('download-pdf').addEventListener('click', () => {
+    const element = document.getElementById('ticket');
+    const opt = {
+      margin: 0.5,
+      filename: 'ticket_pressing.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'cm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+  });
+
+  updateCalcul(); // Initialiser au chargement
+</script>
+
 </body>
 </html>
